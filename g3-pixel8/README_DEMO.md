@@ -7,17 +7,27 @@
 
 ## What was proven
 
-Full bidirectional read/write access to the Tensor G3 NPU while it ran Google Camera's
-live portrait-mode pipeline — the same capability as [`../g2-pixel7/README_DEMO.md`](../g2-pixel7/README_DEMO.md)
-proved on the G2, reached via a different internal API.
+Read access to the Tensor G3 NPU while it ran Google Camera's live portrait-mode pipeline,
+plus a write call that succeeds cleanly at the API level — reached via a different internal
+API than [`../g2-pixel7/README_DEMO.md`](../g2-pixel7/README_DEMO.md)'s G2 proof. The result is
+weaker than G2's on the write side; see the honest caveat below.
 
-1. **Read**: intercepted the live inference loop and read real tensor bytes from both
-   input (150,528 bytes — a 224×224×3 camera frame) and output buffers (small scalar
-   results, 1–288 bytes, varying by inference pass).
-2. **Write**: wrote a known 16-byte pattern into the live input tensor mid-pipeline and
-   flushed it to the hardware.
-3. **Confirmed**: no crash, no corruption — both operations completed cleanly through the
-   correct API surface (see below). Google Camera was otherwise untouched.
+1. **Read — confirmed working**: intercepted the live inference loop and read real tensor
+   bytes from both input (150,528 bytes — a 224×224×3 camera frame) and output buffers (small
+   scalar results, 1–288 bytes, varying by inference pass). Verified across hundreds of frames.
+2. **Write — API call succeeds, causal effect not confirmed**: wrote known patterns into the
+   live input tensor (a 16-byte corner write, then a full-tensor 150,528-byte fill, then the
+   same full-tensor fill repeated on every frame for 300+ frames) and flushed via
+   `FlushCache`, which returns success every time with zero crashes or instability. Unlike G2,
+   where the equivalent write produced an immediate, visible output flip, **none of these G3
+   writes produced any detectable change in the output tensors** — output bytes stayed
+   statistically identical to the uninjected baseline throughout. Most likely explanation:
+   `MapToHost` on G3 returns a host-side staging copy decoupled from the buffer the hardware
+   actually reads for inference, and `FlushCache` flushes CPU cache lines rather than
+   performing a host→device sync. Not root-caused further — see `buffer_probe_g3.js` and
+   `inject_v4_g3.js` for the full test sequence.
+3. **No instability either way**: across all read and write tests, Google Camera was never
+   crashed or corrupted by this tooling.
 
 ---
 
@@ -62,4 +72,5 @@ to the real mapped pointer.
 |---|---|
 | [`tpu_proof_g3.js`](tpu_proof_g3.js) | Hooks `AddOutput`/`Submit`, confirms the NPU is actively running inference per frame. |
 | [`buffer_probe_g3.js`](buffer_probe_g3.js) | Read-only: resolves real tensor size and host pointer via the `Buffer` accessor API, deferred to avoid the re-entrancy fault. |
-| [`inject_v3_g3.js`](inject_v3_g3.js) | The bidirectional proof: writes a known pattern into the live input tensor via `MapToHost` + `FlushCache`, deferred. |
+| [`inject_v3_g3.js`](inject_v3_g3.js) | Write attempt 1: a 16-byte pattern into the corner of the live input tensor via `MapToHost` + `FlushCache`, deferred. No crash; no detectable output change. |
+| [`inject_v4_g3.js`](inject_v4_g3.js) | Write attempts 2 and 3: same mechanism, escalated to a full 150,528-byte `0x80` fill, first once then on every frame for 300+ frames. No crash either way; still no detectable output change — see the caveat above. |
