@@ -13,14 +13,21 @@ are for people curious about the reverse-engineering, not a prerequisite.
 A local OpenAI-compatible chat API (`llama-server`) running on-device, CPU-only, fast enough to
 be usable interactively.
 
-| Device | SoC | Optimal threads | Decode speed |
-|---|---|---|---|
-| Pixel 7 | Tensor G2 | `-t 4` | ~13–21 t/s (pinning-dependent) |
-| Pixel 8 | Tensor G3 | `-t 5` | ~19.4 t/s |
+| Device | SoC | Optimal threads | `llama-bench` decode speed | Real `llama-server` decode speed |
+|---|---|---|---|---|
+| Pixel 7 | Tensor G2 | `-t 4` | ~13–21 t/s (pinning-dependent) | ~9 t/s |
+| Pixel 8 | Tensor G3 | `-t 5` | ~19.4–22 t/s | ~7 t/s |
 
 Model used for these numbers: Qwen2.5-1.5B-Instruct, Q4_K_M quantization (~1 GB). Any
 llama.cpp-compatible GGUF model of similar size will behave similarly; larger models scale down
 roughly with parameter count.
+
+**Note on the two speed columns:** `llama-bench` measures the raw forward-pass decode loop only.
+`llama-server`'s real chat-completion throughput is consistently lower on both phones — confirmed
+not to be caused by sampling settings, memory-fit heuristics, or CPU core placement (all tested,
+none changed the result). The gap comes from `llama-server`'s own request/slot-management
+overhead between tokens, not from anything device-specific. If you're benchmarking your own setup,
+measure against the server you'll actually run, not `llama-bench` alone.
 
 We also tested NPU offload for the compute-heavy part of decode (see the chip-specific folders)
 — it does not help. Memory bandwidth, not compute, is the bottleneck for LLM decode on this
