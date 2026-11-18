@@ -2,6 +2,15 @@
 
 **Device**: Google Pixel · Tensor **G4** SoC · DarWINN NPU · Android, Magisk root
 
+> **Status: community-contributed, not verified by the maintainer.** The maintainer has no Tensor G4
+> device and has not reproduced any result in this folder. Numbers below (e.g. the 99 s → 4.8 s
+> compile time, the 64/64 packer validation) are the contributor's own measurements.
+> How to re-check them:
+> - **Compile-cache timing:** see [`NNAPI_60S_WALL.md`](NNAPI_60S_WALL.md) — time a cold compile
+>   with `/data/vendor/edgetpu/cache` cleared, then a warm one.
+> - **Packer 64/64:** run [`ternary-packer/zout_emitter.py`](ternary-packer/) per its README.
+> - **Target build:** see [`ccf-compiler/README.md`](ccf-compiler/README.md#target-build--read-before-running).
+
 Where [`../g2-pixel7/`](../g2-pixel7/) and [`../g3-pixel8/`](../g3-pixel8/) reverse-engineered
 *read/write access* to the NPU while Google Camera drove it, this folder goes further: **driving the
 NPU directly, compiling custom graphs to it ahead-of-time, and dispatching sub-byte-quantized graphs

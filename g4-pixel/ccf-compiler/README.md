@@ -19,6 +19,41 @@ to copy `libedgetpu_tflite_compiler.so` off your own device.
 | `msg_probe.c` | Probes the compiler's message / error-reporting interface |
 | `build.sh` / `run.sh` | Build + invoke |
 
+## Target build — read before running
+
+The `PixelG4A17_Compiler*.c` drivers patch the vendor compiler **in memory** (nothing is written
+to `/vendor` on disk) at fixed offsets. Those offsets fit exactly one build of
+`libedgetpu_tflite_compiler.so` — per the source comments, the Android 17 build on a Pixel 9
+(Tensor G4), reverse-engineered 2026-07-01.
+
+| | |
+|---|---|
+| Device | Pixel 9 (Tensor G4) |
+| Android build ID | *not yet provided by the contributor* |
+| Compiler `.so` size | *not yet provided* |
+| Compiler `.so` SHA-256 | *not yet provided* |
+
+Safeguards:
+
+- Every patch checks the original instruction bytes before writing. On any mismatch the driver
+  now **aborts before calling the compiler** (exit 2) instead of running half-patched. Set
+  `ALLOW_PATCH_MISMATCH=1` only if you are doing your own reverse-engineering.
+- `run.sh` prints the size and SHA-256 of your `.so`. Set `COMPILER_SHA256=<hex>` to make it
+  refuse any other build outright.
+- `msg_probe.c` writes a `brk #0` at a fixed offset (`0x39c8014`) **without** an original-byte
+  check. Only use it against the same build, and verify the offset first.
+
+If you run this on a different build, please report your device, build ID and `.so` hash in an
+issue.
+
+## SELinux
+
+`run.sh` does **not** touch SELinux by default. On some builds the compiler is denied access to
+`/vendor` or `/data/vendor/edgetpu` when launched from a root shell; if that happens you can opt
+in with `PERMISSIVE=1 ./run.sh ...`, which sets SELinux to permissive **device-wide** for the
+duration of the run and restores enforcing afterwards. Don't use it on a device you rely on
+without understanding that trade-off.
+
 ## Use
 
 ```sh

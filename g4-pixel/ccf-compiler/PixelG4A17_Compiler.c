@@ -137,6 +137,13 @@ int main(int argc, char** argv) {
                    a[0], a[1], a[2], a[3]);
         } else {
             printf("  [2.%zu] PATCH FAIL: %s\n", i, g_patches[i].desc);
+            // Fail closed: an ORIG-byte mismatch means this is not the compiler build the
+            // offsets were reverse-engineered from. Refuse to run rather than call into a
+            // half-patched library. Override only for RE work: ALLOW_PATCH_MISMATCH=1.
+            if (!getenv("ALLOW_PATCH_MISMATCH")) {
+                printf("  aborting: compiler .so does not match the expected build (see README)\n");
+                return 2;
+            }
         }
     }
 

@@ -27,9 +27,13 @@ int8 / int4 / int2 / fp16, per-tensor vs per-channel, shapes swept by stride —
 profiled on-device. That turns the compiler + hardware from a black box into an **empirical
 micro-architectural map** (op-coverage, fusion patterns, tiling/alignment rules, a real roofline).
 
-The compiled G4 DGC0 artifacts live here:
+Compiled G4 DGC0 artifacts are not hosted in this repo.
 
-> **https://huggingface.co/xThr45hx/G4_DGCO**
+> **Third-party, unverified:** the contributor has published DGC0 artifacts at
+> https://huggingface.co/xThr45hx/G4_DGCO. They are not hosted, built or checked by the
+> maintainer of this repo, and the source models and device build that produced them are not
+> documented here. Treat them as untrusted binaries; prefer compiling your own with the steps
+> below.
 
 ## Reproduce
 
