@@ -28,10 +28,10 @@ to `/vendor` on disk) at fixed offsets. Those offsets fit exactly one build of
 
 | | |
 |---|---|
-| Device | Pixel 9 (Tensor G4) |
-| Android build ID | *not yet provided by the contributor* |
-| Compiler `.so` size | *not yet provided* |
-| Compiler `.so` SHA-256 | *not yet provided* |
+| Device | Pixel 9 Pro XL (`komodo`, Tensor G4) |
+| Android build ID | `CP31.260608.007` (Android 17, security patch 2026-06-05) |
+| Compiler `.so` size | 63374952 bytes (≈60.4 MiB) |
+| Compiler `.so` SHA-256 | `0985d28d770ffc51544314422ee4396474e5fb57543d317923692d8ab7d420b3` |
 
 Safeguards:
 
