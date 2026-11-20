@@ -1,7 +1,8 @@
 # Google Tensor Chips — DarWINN NPU Access
 
-Direct-access tooling for the **Google Tensor NPU** (DarWINN), reverse-engineered across two
-generations: **Tensor G2** (Pixel 7, codename Janeiro) and **Tensor G3** (Pixel 8, codename Rio).
+Direct-access tooling for the **Google Tensor NPU** (DarWINN), reverse-engineered across three
+generations: **Tensor G2** (Pixel 7, codename Janeiro), **Tensor G3** (Pixel 8, codename Rio) and
+**Tensor G4** (Pixel 9 Pro XL, codename komodo — community-contributed).
 
 ## Why this exists
 
@@ -15,6 +16,11 @@ CPU, so it ends up no faster (~1.81 ms/block NPU vs ~1.57 ms CPU on G2; ~2.01 ms
 G3, for a real transformer FFN block). For my own use case that was a dead end on both chips — the
 LLM runs better on the CPU.
 
+The G4 work (contributed by [Thr45hx](https://github.com/Thr45hx)) goes further on access: it
+compiles custom graphs to the NPU ahead of time and dispatches int4/int2/ternary weights on it. That
+doesn't change the verdict — it shows sub-byte graphs *compile and run* on the NPU, not that they
+produce coherent output or beat the CPU. For LLMs, the CPU is still the place to run them.
+
 But the access tooling itself works, and the NPU **is** a strong accelerator for the workloads it
 was built for (vision / CNN models, where the weights fit on-chip). It didn't serve my project, but
 others doing on-device vision or NPU research might find it useful — so I'm releasing it under MIT.
@@ -26,9 +32,10 @@ others doing on-device vision or NPU research might find it useful — so I'm re
 | [`on-device-llm/`](on-device-llm/) | The actual LLM serving setup (llama.cpp + Qwen2.5-1.5B) that the NPU work below was trying to accelerate. Measured tokens/sec on both phones. | **No** |
 | [`g2-pixel7/`](g2-pixel7/) | Tensor G2 (Pixel 7, Janeiro) NPU access — full SDK, standalone C++ runner, custom model execution, bidirectional proof. The original reverse-engineering work. | Yes |
 | [`g3-pixel8/`](g3-pixel8/) | Tensor G3 (Pixel 8, Rio) NPU access — bidirectional proof ported to G3's different (handle-based) Buffer API, plus the re-measured FFN bandwidth verdict. | Yes |
+| [`g4-pixel/`](g4-pixel/) | Tensor G4 (Pixel 9 Pro XL, komodo) NPU access — on-device AOT compile to DGC0, raw VII ioctl dispatch, sub-byte weight packing, the ~60 s compile-wall workaround. Community-contributed; not verified by the maintainer. | Yes |
 
 If you just want a local LLM running on your phone, start with `on-device-llm/` — it's the
-useful, no-root part. The `g2-pixel7/`/`g3-pixel8/` folders are for people curious about *why*
+useful, no-root part. The `g2-pixel7/`/`g3-pixel8/`/`g4-pixel/` folders are for people curious about *why*
 the NPU isn't used and how the locked hardware was accessed anyway.
 
 The two chips' NPUs expose the **same DarWINN API v2 surface** (`AddInput`/`AddOutput`/`Submit`)
@@ -39,18 +46,18 @@ API. See [`g3-pixel8/README_DEMO.md`](g3-pixel8/README_DEMO.md) for what that ch
 ## What I found, in short
 
 - The NPU can be driven directly from a rooted device, at the same privilege as the Camera app —
-  on both G2 and G3.
+  on G2 and G3, and (per the G4 contribution) on G4, including AOT-compiled custom graphs.
 - **Custom models run on it** (demonstrated on G2): int8 weights, uint8 I/O, **per-tensor**
   quantization → loadable via the `google-edgetpu` NNAPI accelerator (per-channel weights get
   rejected).
 - **It's a compute accelerator, not a memory one.** Great for vision/CNN (weights fit the on-chip
-  SRAM). No help for LLM decode (bandwidth-bound, shares the LPDDR5 bus with the CPU) — confirmed
-  on both generations.
+  SRAM). No help for LLM decode (bandwidth-bound, shares the LPDDR5 bus with the CPU) — measured
+  on G2 and G3; nothing in the G4 work changes that. LLMs belong on the CPU.
 
 ## Environment
 
 `on-device-llm/` needs nothing but Termux — no root. The NPU folders need a Magisk-rooted
-Pixel 7 (Tensor G2) or Pixel 8 (Tensor G3) · Android 14/16 · Frida 17.x · target process
+Pixel 7 (Tensor G2), Pixel 8 (Tensor G3) or Pixel 9 Pro XL (Tensor G4, Android 17) · Android 14/16/17 · Frida 17.x · target process
 `com.google.android.GoogleCamera` · `libedgetpu_util.so` — device-owner access to your own
 hardware, for research and learning.
 
